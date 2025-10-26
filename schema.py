@@ -41,12 +41,31 @@ def get_books(
             ]
     except Exception:
         return []
+    
+
+def get_author(author_id: strawberry.ID) -> typing.Optional["Author"]:
+    try:
+        # Validate/convert the incoming ID to an integer (authors.id is BIGINT)
+        try:
+            id_int = int(str(author_id))
+        except (ValueError, TypeError):
+            return None
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT a.id, a.name FROM public.authors a WHERE a.id = :id LIMIT 1"),
+                {"id": id_int},
+            )
+            row = result.mappings().first()
+            if not row:
+                return None
+            return Author(id=row["id"], name=row["name"])    
+    except Exception:
+        return None
 
 
 @strawberry.type
 class Book:
     title: str
-    # author: typing.Optional["Author"]
 
 
 @strawberry.type
@@ -69,6 +88,16 @@ class Query:
         ] = None,
     ) -> typing.List[Book]:
         return get_books(starts_with=starts_with)
+
+    @strawberry.field
+    def author(
+        self,
+        author_id: typing.Annotated[
+            strawberry.ID,
+            strawberry.argument(name="authorId", description="Author ID"),
+        ],
+    ) -> typing.Optional[Author]:
+        return get_author(author_id)
 
 
 schema = strawberry.Schema(query=Query)
