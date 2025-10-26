@@ -108,20 +108,17 @@ def _get_or_create_author_loader(context: dict) -> DataLoader:
     return loader
 
 
-async def get_author_dataloader(author_id: strawberry.ID, info: strawberry.types.Info) -> typing.Optional["Author"]:
+async def get_author_with_dataloader(root: "Book", info: strawberry.types.Info) -> typing.Optional["Author"]:
     loader = _get_or_create_author_loader(info.context)
-    return await loader.load(author_id)
-
-
-async def _resolve_book_author(root: "Book", info: strawberry.types.Info) -> typing.Optional["Author"]:
-    return await get_author_dataloader(root.author_id, info)
+    return await loader.load(root.author_id)
 
 
 @strawberry.type
 class Book:
     title: str
     author_id: strawberry.Private[strawberry.ID]
-    author: typing.Optional["Author"] = strawberry.field(resolver=_resolve_book_author)
+    author: typing.Optional["Author"] = strawberry.field(resolver=lambda root: get_author(root.author_id))
+    author_dataloader: typing.Optional["Author"] = strawberry.field(resolver=get_author_with_dataloader)
 
 
 @strawberry.type
@@ -144,16 +141,6 @@ class Query:
         ] = None,
     ) -> typing.List[Book]:
         return get_books(starts_with=starts_with)
-
-    @strawberry.field
-    def author(
-        self,
-        author_id: typing.Annotated[
-            strawberry.ID,
-            strawberry.argument(name="authorId", description="Author ID"),
-        ],
-    ) -> typing.Optional[Author]:
-        return get_author(author_id)
 
 
 schema = strawberry.Schema(query=Query)
