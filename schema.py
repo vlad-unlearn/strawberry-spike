@@ -12,13 +12,13 @@ DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 DB_PORT = int(os.getenv("POSTGRES_PORT", "15432"))
 
 DATABASE_URL = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-engine = create_engine(DATABASE_URL, future=True)
+engine = create_engine(DATABASE_URL, future=True, echo=True)
 
 
 def get_books(
     starts_with: typing.Optional[str],
 ):
-    base_sql = "SELECT b.title FROM public.books b"
+    base_sql = "SELECT b.title, b.author_id FROM public.books b"
 
     params: dict = {}
     where_clause = ""
@@ -36,6 +36,7 @@ def get_books(
             return [
                 Book(
                     title=row["title"],
+                    author_id=row["author_id"],
                 )
                 for row in rows
             ]
@@ -66,6 +67,8 @@ def get_author(author_id: strawberry.ID) -> typing.Optional["Author"]:
 @strawberry.type
 class Book:
     title: str
+    author_id: strawberry.Private[strawberry.ID]
+    author: typing.Optional["Author"] = strawberry.field(resolver=lambda root: get_author(root.author_id))
 
 
 @strawberry.type
