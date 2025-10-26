@@ -2,7 +2,9 @@ import typing
 import os
 
 import strawberry
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, bindparam
+from strawberry.dataloader import DataLoader
+import asyncio
 
 # Build a global SQLAlchemy engine (sync) using env vars (matches docker-compose defaults)
 DB_USER = os.getenv("POSTGRES_USER", "app")
@@ -64,11 +66,62 @@ def get_author(author_id: strawberry.ID) -> typing.Optional["Author"]:
         return None
 
 
+# DataLoader-based resolver to avoid N+1
+async def _batch_load_authors(keys: typing.List[strawberry.ID]) -> typing.List[typing.Optional["Author"]]:
+    # Normalize keys to ints; mark invalids
+    normalized: list[typing.Optional[int]] = []
+    valid_ids: list[int] = []
+    for k in keys:
+        try:
+            v = int(str(k))
+        except (ValueError, TypeError):
+            v = None
+        normalized.append(v)
+        if v is not None:
+            valid_ids.append(v)
+
+    # If no valid ids, return Nones quickly
+    if not valid_ids:
+        return [None for _ in keys]
+
+    def _fetch(ids: list[int]):
+        with engine.connect() as conn:
+            stmt = text("SELECT a.id, a.name FROM public.authors a WHERE a.id IN :ids").bindparams(bindparam("ids", expanding=True))
+            result = conn.execute(stmt, {"ids": ids})
+            return result.mappings().all()
+
+    rows = await asyncio.to_thread(_fetch, valid_ids)
+    by_id: dict[int, Author] = {int(r["id"]): Author(id=r["id"], name=r["name"]) for r in rows}
+
+    out: list[typing.Optional[Author]] = []
+    for v in normalized:
+        out.append(by_id.get(v) if v is not None else None)
+    return out
+
+
+def _get_or_create_author_loader(context: dict) -> DataLoader:
+    key = "author_loader"
+    loader = context.get(key)
+    if loader is None:
+        loader = DataLoader(load_fn=_batch_load_authors)
+        context[key] = loader
+    return loader
+
+
+async def get_author_dataloader(author_id: strawberry.ID, info: strawberry.types.Info) -> typing.Optional["Author"]:
+    loader = _get_or_create_author_loader(info.context)
+    return await loader.load(author_id)
+
+
+async def _resolve_book_author(root: "Book", info: strawberry.types.Info) -> typing.Optional["Author"]:
+    return await get_author_dataloader(root.author_id, info)
+
+
 @strawberry.type
 class Book:
     title: str
     author_id: strawberry.Private[strawberry.ID]
-    author: typing.Optional["Author"] = strawberry.field(resolver=lambda root: get_author(root.author_id))
+    author: typing.Optional["Author"] = strawberry.field(resolver=_resolve_book_author)
 
 
 @strawberry.type
