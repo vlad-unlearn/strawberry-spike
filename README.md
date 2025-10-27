@@ -1,6 +1,8 @@
 # strawberry-spike
 
-A tiny GraphQL spike using Strawberry and PostgreSQL.
+A spike for the new platform using Strawberry GraphQL with PostgreSQL and SQLAlchemy: 
+explores building the schema (types, queries, mutations, resolvers) 
+and tests DataLoader batching to avoid N+1 queries.
 
 ## Quick start
 
@@ -31,17 +33,6 @@ From the project root:
    ```
    http://localhost:8000/graphql
    ```
-
-## Export GraphQL schema (SDL)
-
-- Print SDL to stdout:
-  ```bash
-  strawberry export-schema app.graphql.schema
-  ```
-- Save SDL to a file:
-  ```bash
-  strawberry export-schema app.graphql.schema --output schema.graphql
-  ```
 
 ## Example queries and use-cases
 
@@ -123,3 +114,15 @@ Notes:
 - If a non-existent numeric `authorId` is used and a foreign key constraint is active, the insert may fail and return `null`.
 
 ---
+
+## Export GraphQL schema (SDL)
+
+- Print SDL to stdout:
+  ```bash
+  strawberry export-schema app.graphql.schema
+  ```
+- Save SDL to a file:
+  ```bash
+  strawberry export-schema app.graphql.schema --output schema.graphql
+  ```
+
