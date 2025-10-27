@@ -25,37 +25,20 @@ From the project root:
    ```
 4. Run the server:
    ```bash
-   strawberry dev schema
+   strawberry dev app.graphql.schema --host localhost
    ```
 5. Open GraphiQL:
    ```
    http://localhost:8000/graphql
    ```
 
-## Logging SQL queries (stdout)
-
-Set SQLALCHEMY_ECHO to a truthy value to print executed SQL statements.
-
-- Bash/Zsh:
-  ```bash
-  export SQLALCHEMY_ECHO=true && strawberry server schema
-  ```
-- PowerShell:
-  ```powershell
-  $Env:SQLALCHEMY_ECHO = "true"; strawberry server schema
-  ```
-- cmd.exe:
-  ```bat
-  set SQLALCHEMY_ECHO=true && strawberry server schema
-  ```
-
 ## Export GraphQL schema (SDL)
 
 - Print SDL to stdout:
   ```bash
-  strawberry export-schema schema
+  strawberry export-schema app.graphql.schema
   ```
 - Save SDL to a file:
   ```bash
-  strawberry export-schema schema --output schema.graphql
+  strawberry export-schema app.graphql.schema --output schema.graphql
   ```
