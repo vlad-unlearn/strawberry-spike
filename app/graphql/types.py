@@ -13,6 +13,7 @@ class Author:
 
 @strawberry.type
 class Book:
+    id: strawberry.ID
     title: str
     author_id: strawberry.Private[strawberry.ID]
 
@@ -37,4 +38,4 @@ class Book:
         if not data:
             return None
         # Map repository dict to GraphQL Author type
-        return Author(id=str(data.get("id")), name=data.get("name"))
+        return Author(id=str(data["id"]), name=data["name"])
