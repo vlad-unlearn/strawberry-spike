@@ -9,7 +9,6 @@ def get_books(starts_with: Optional[str]) -> List[Dict[str, Any]]:
     params: dict = {}
     where_clause = ""
     if starts_with is not None:
-        # Use lower(...) LIKE lower(:starts_with) || '%' to leverage idx_books_title_lower
         where_clause = " WHERE lower(b.title) LIKE lower(:starts_with) || '%'"
         params = {"starts_with": starts_with}
 
