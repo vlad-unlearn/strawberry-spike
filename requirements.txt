@@ -1,3 +1,4 @@
 strawberry-graphql
 SQLAlchemy
 psycopg[binary]
+typer
