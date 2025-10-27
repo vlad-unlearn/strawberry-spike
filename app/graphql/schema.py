@@ -20,18 +20,23 @@ class Query:
         return get_books(starts_with)
 
 
+@strawberry.input
+class AddBookInput:
+    title: str
+    author_id: t.Annotated[
+        t.Optional[strawberry.ID],
+        strawberry.field(name="authorId"),
+    ] = None
+
+
 @strawberry.type
 class Mutation:
     @strawberry.mutation(name="addBook")
     def add_book(
         self,
-        title: str,
-        author_id: t.Annotated[
-            t.Optional[strawberry.ID],
-            strawberry.argument(name="authorId", description="Adds a Book"),
-        ] = None,
+        input: t.Annotated[AddBookInput, strawberry.argument(description="Adds a Book")],
     ) -> t.Optional[Book]:
-        return add_book_resolver(title, author_id)
+        return add_book_resolver(input.title, input.author_id)
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
